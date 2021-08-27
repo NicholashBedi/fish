@@ -8,6 +8,7 @@ WIDTH = 500
 HEIGHT = 500
 FISH_WIDTH = 20
 FISH_HIGHT = 20
+VISION_RADIUS = 100
 
 # Set up the drawing window
 screen = pygame.display.set_mode([WIDTH, HEIGHT])
@@ -18,9 +19,9 @@ icon = pygame.image.load('fish.png')
 
 pygame.display.set_icon(icon)
 fish_image = pygame.transform.scale(icon, (FISH_WIDTH,FISH_HIGHT))
-n_fish = 20
+n_fish = 50
 
-DEBUG = True
+DEBUG = False
 
 fish = {"image":fish_image,
         "position": np.random.uniform(0, WIDTH, (n_fish, 2)),
@@ -56,17 +57,20 @@ def wrap_orientation(angle):
         return wrap_orientation(angle)
     return angle
 
-def seperation(fish):
+def get_fish_seperations(fish):
     pos = fish["position"].T
     sep_matrix = pos[:, :,  np.newaxis] - pos[: ,  np.newaxis , :]
     square_distances = np.sum(sep_matrix * sep_matrix, 0)
-    alert_distance_squared = 100*100
+    alert_distance_squared = VISION_RADIUS**2
     far_fish = square_distances > alert_distance_squared
+    return sep_matrix, square_distances, far_fish
 
-    # sep_matrix[:, destination, origin]
+def boid_behaviour(fish, sep_matrix, square_distances, far_fish, seperation_mag = 1, alignment_mag = 1, cohesion_mag = 1):
     for i in range(n_fish):
         start_pos = fish["position"][i,:] + [FISH_WIDTH/2, FISH_HIGHT/2]
         avoidance_force = np.zeros(2)
+        alignment_direction = np.zeros(2)
+        local_flock_avg_pos = np.zeros(2)
         n_close = 0
         for j in range(n_fish):
             if i!=j and (not far_fish[i,j]):
@@ -76,20 +80,28 @@ def seperation(fish):
                 n_close += 1
                 force = 0.001 / (np.sqrt(square_distances[i,j]) + 0.01)
                 avoidance_force += force*sep_matrix[:,i, j] / np.linalg.norm(sep_matrix[:,i, j])
-
+                alignment_direction += fish["velocity"][j]  / np.linalg.norm(fish["velocity"][j])
+                local_flock_avg_pos += fish["position"][j]
         if n_close != 0:
             force_vector = avoidance_force
-            end_force_vector = start_pos + 1000000 * force_vector
             if DEBUG:
+                end_force_vector = start_pos + 1000000 * force_vector
                 pygame.draw.line(screen, (255,0,0), start_pos, end_force_vector, width = 2)
-            fish["acceleration"][i] += force_vector
-
+            fish["acceleration"][i] += seperation_mag * force_vector
+            fish["acceleration"][i] += 0.00001 * alignment_mag * alignment_direction / n_close
+            local_flock_avg_pos /= n_close
+            cohesion_force = 0.000002 * cohesion_mag * (local_flock_avg_pos - fish["position"][i,:])
+            fish["acceleration"][i] += cohesion_force
 
 def move_fish(fish, dt):
+    max_speed = 0.06
     fish["position"] += fish["velocity"] * dt
     fish["velocity"] += fish["acceleration"] * dt
-    fish["velocity"] = np.clip(fish["velocity"], -0.05, 0.05)
     fish["acceleration"] = np.zeros((n_fish,2))
+    for i in range(n_fish):
+        if (True in (fish["velocity"][i] > max_speed)) or (True in (fish["velocity"][i] < -max_speed)):
+            fish["velocity"][i] /= np.linalg.norm(fish["velocity"][i])
+            fish["velocity"][i] *= max_speed
     return wrap_around_screen(fish)
 
 # Run until the user asks to quit
@@ -102,7 +114,9 @@ while running:
             running = False
     # Draw a solid blue circle in the center
     draw_fishes(fish)
-    seperation(fish)
+    sep_matrix, square_distances, far_fish = get_fish_seperations(fish)
+    boid_behaviour(fish, sep_matrix, square_distances, far_fish,
+                seperation_mag = 0.5, alignment_mag = 3, cohesion_mag = 2)
     dt = clock.tick(60)
     fish = move_fish(fish, dt)
     # print(fish)
