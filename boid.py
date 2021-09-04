@@ -3,10 +3,11 @@ import numpy as np
 import math
 import sys
 import supporting_math as sm
+num_fish = 60
 WIDTH = 600
 HEIGHT = 600
-VISION_RADIUS = 35
 DEBUG = False
+time_delay = 1
 class Boids:
     def __init__(self, fish_image, n_fish):
         self.fish_img = fish_image
@@ -21,11 +22,15 @@ class Boids:
         self.debug_start = []
         self.debug_end = []
         self.trackbar_window = "Trackbar"
+        blind_spot_angle = 45
+        self.n_lines = 21
+        self.ang_inc = (360-blind_spot_angle)/self.n_lines
+        self.vision_radius = 50
         self.make_trackbars()
         self.load_obstacle()
 
     def load_obstacle(self):
-        self.obstacle_img = cv.imread("obstacle_1.png", cv.IMREAD_UNCHANGED)
+        self.obstacle_img = cv.imread("obstacle_2.png", cv.IMREAD_UNCHANGED)
         self.obstacle = self.obstacle_img[:, :, 0] == 0
 
     def make_trackbars(self):
@@ -33,9 +38,9 @@ class Boids:
         cv.createTrackbar("cohesion", self.trackbar_window, 200, 1000, self.on_trackbar)
         cv.createTrackbar("alignment", self.trackbar_window, 200, 1000, self.on_trackbar)
         cv.createTrackbar("seperation", self.trackbar_window, 75, 1000, self.on_trackbar)
-        cv.createTrackbar("avoid_wall", self.trackbar_window, 100, 1000, self.on_trackbar)
-        cv.createTrackbar("avoid_object", self.trackbar_window, 70, 1000, self.on_trackbar)
-        cv.createTrackbar("wall_vision", self.trackbar_window, 100, 1000, self.on_trackbar)
+        # cv.createTrackbar("avoid_wall", self.trackbar_window, 100, 1000, self.on_trackbar)
+        cv.createTrackbar("a_obj", self.trackbar_window, 50, 1000, self.on_trackbar)
+        cv.createTrackbar("v_radius", self.trackbar_window, 75, 150, self.on_trackbar)
 
     def on_trackbar(self, x):
         pass
@@ -104,7 +109,7 @@ class Boids:
         pos = self.position.T
         self.sep_matrix = pos[:, :,  np.newaxis] - pos[: ,  np.newaxis , :]
         self.square_distances = np.sum(self.sep_matrix * self.sep_matrix, 0)
-        self.alert_distance_squared = VISION_RADIUS**2
+        self.alert_distance_squared = self.vision_radius**2
         self.far_fish = self.square_distances > self.alert_distance_squared
 
     def boid_behaviour(self):
@@ -154,52 +159,59 @@ class Boids:
         return(new_x, new_y)
     def check_in_bounds(self,x,y):
         return (x>0 and x<WIDTH and y>0 and y <HEIGHT)
+
+    def get_end_points(self, start_pos, angle, scale = 1):
+        end_x = start_pos[0] + scale*self.vision_radius*math.cos(math.radians(angle))
+        end_y = start_pos[1] - scale*self.vision_radius*math.sin(math.radians(angle))
+        return self.within_bounds(end_x, end_y)
+
+    def check_colision(self, start_pos, vision_angle, scale = 1):
+        end_x, end_y = self.get_end_points(start_pos, vision_angle, scale)
+        line_points = sm.get_line_points(start_pos[0],start_pos[1], end_x, end_y)
+        collision = False
+        for point in line_points:
+            if self.check_in_bounds(point[0],point[1]) and self.obstacle[point[1], point[0]]:
+                return True
+        return False
+
+    def display_vision_line(self, start_pos, angle, collision):
+        end_x, end_y = self.get_end_points(start_pos, angle)
+        colour = (255,0,0,255)
+        if collision:
+            colour = (0,0,255,255)
+        cv.line(self.base_image,start_pos,(end_x,end_y),colour,1)
+
+    def find_nearest_clear_angle(self, start_pos, starting_angle):
+        for i in range(1, self.n_lines):
+            # check ccw
+            if i%2 == 1:
+                angle = sm.wrap_orientation(starting_angle + (i+1)*self.ang_inc/2)
+            else:
+                angle = sm.wrap_orientation(starting_angle - i*self.ang_inc/2)
+            collision = self.check_colision(start_pos, angle, scale = 1)
+            if DEBUG:
+                self.display_vision_line(start_pos, angle, collision)
+            if not collision:
+                return angle
+        return_angle = math.atan2(-(start_pos[1] - HEIGHT/2), start_pos[0] - WIDTH/2) * 180/ math.pi
+        return return_angle
+
     def vision_cone(self):
-        # draw obstacle
-        # cv.rectangle(self.base_image, (WIDTH//2 - 25, HEIGHT//2 - 25),
-        #             (WIDTH//2 + 25, HEIGHT//2 + 25), (0,254,0,255), 10)
-        force_scale = cv.getTrackbarPos("avoid_object", self.trackbar_window) / 1000000
-        blind_spot_angle = 45
-        n_lines = 11
-        ang_inc = (360-blind_spot_angle)/n_lines
+        force_scale = cv.getTrackbarPos("a_obj", self.trackbar_window) / 100000
+        self.vision_radius = cv.getTrackbarPos("v_radius", self.trackbar_window)
         for i in range(self.n_fish):
             start_pos = tuple(self.position[i].astype(int))
             # Already calculated in display_boid
             angle = math.atan2(-self.velocity[i][1], self.velocity[i][0]) * 180/ math.pi
-            starting_angle = sm.wrap_orientation(angle - 180 + blind_spot_angle/2)
-            resulting_vector = np.zeros(2)
-            n_coloisions = 0
-            for j in range(n_lines):
-                vision_angle = sm.wrap_orientation(starting_angle + j*ang_inc)
-                end_x = start_pos[0] + VISION_RADIUS*math.cos(math.radians(vision_angle))
-                end_y = start_pos[1] - VISION_RADIUS*math.sin(math.radians(vision_angle))
-                end_x, end_y = self.within_bounds(end_x, end_y)
-                line_points = sm.get_line_points(start_pos[0],start_pos[1], end_x, end_y)
-                collision = False
-                for point in line_points:
-                    if self.check_in_bounds(point[0],point[1]) and self.obstacle[point[1], point[0]]:
-                        collision = True
-                        break
-                colour = (255,0,0,255)
-                if collision:
-                    colour = (0,0,255,255)
-                    resulting_vector += [end_x - start_pos[0], end_y - start_pos[1]]
-                    n_coloisions += 1
-                if DEBUG:
-                    cv.line(self.base_image,start_pos,(end_x,end_y),colour,1)
-            # resultant force
-            if n_coloisions == n_lines:
-                self.acceleration[i] = 0
-                direction = [WIDTH/2, HEIGHT/2] - self.position[i]
-                direction = direction/np.linalg.norm(direction)
-                self.velocity[i] = 0.08 * direction
-            if n_coloisions > 0:
-                resulting_vector /= -VISION_RADIUS
-                if DEBUG:
-                    end_r_vector = tuple((VISION_RADIUS*resulting_vector + [start_pos[0], start_pos[1]]).astype(int))
-                    cv.line(self.base_image,start_pos,end_r_vector,(255,0,255,255),4)
-                self.acceleration[i] /= 2
-                self.acceleration[i] += force_scale*resulting_vector
+            starting_angle = sm.wrap_orientation(angle)
+            if DEBUG:
+                end_x, end_y = self.get_end_points(start_pos, angle)
+                cv.line(self.base_image,start_pos,(end_x,end_y),(255,0,255,255),1)
+            if self.check_colision(start_pos, starting_angle):
+                angle_to_move = self.find_nearest_clear_angle(start_pos, starting_angle)
+                self.acceleration[i] += force_scale \
+                            *np.array((math.sin(math.radians(angle_to_move)),
+                                math.cos(math.radians(angle_to_move))))
 
     def check_boundaries(self):
         too_right = self.position[:, 0] > WIDTH - self.fish_img_width
@@ -220,7 +232,7 @@ class Boids:
         self.velocity[too_high, 1] = abs(self.velocity[too_high, 1])
 
     def avoid_walls(self):
-        too_close = cv.getTrackbarPos("wall_vision", self.trackbar_window)
+
         close_to_right_wall = self.position[:, 0] > WIDTH - too_close
         close_to_left_wall = self.position[:, 0] < too_close
         close_to_bottom_wall= self.position[:, 1] > HEIGHT - too_close
@@ -236,11 +248,11 @@ class Boids:
         return avoid_walls_force
 
 fish_img = cv.imread("fish.png", cv.IMREAD_UNCHANGED)
-b = Boids(fish_img, 60)
+b = Boids(fish_img, num_fish)
 while(True):
     b.boid_behaviour()
     b.vision_cone()
     b.move_fish()
     b.display_boid()
-    if cv.waitKey(10) & 0xFF == ord('q'):
+    if cv.waitKey(time_delay) & 0xFF == ord('q'):
         break
