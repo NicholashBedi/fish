@@ -2,6 +2,7 @@
 import pygame
 import math
 import numpy as np
+import cv2 as cv
 pygame.init()
 
 WIDTH = 500
@@ -20,7 +21,7 @@ icon = pygame.image.load('fish.png')
 pygame.display.set_icon(icon)
 fish_image = pygame.transform.scale(icon, (FISH_WIDTH,FISH_HIGHT))
 n_fish = 50
-
+trackbar_window = "Trackbar"
 DEBUG = False
 
 fish = {"image":fish_image,
@@ -57,6 +58,7 @@ def wrap_orientation(angle):
         return wrap_orientation(angle)
     return angle
 
+
 def get_fish_seperations(fish):
     pos = fish["position"].T
     sep_matrix = pos[:, :,  np.newaxis] - pos[: ,  np.newaxis , :]
@@ -65,7 +67,29 @@ def get_fish_seperations(fish):
     far_fish = square_distances > alert_distance_squared
     return sep_matrix, square_distances, far_fish
 
+# def vision_cone(fish):
+#     VISION_RADIUS
+
+def avoid_walls(fish):
+    too_close = 50
+    close_to_right_wall = fish["position"][:, 0] > WIDTH - too_close
+    close_to_left_wall = fish["position"][:, 0] < too_close
+    close_to_bottom_wall= fish["position"][:, 1] > HEIGHT - too_close
+    close_to_top = fish["position"][:, 1] < too_close
+    avoid_walls_force = np.zeros((n_fish,2))
+    force_scale = cv.getTrackbarPos("avoid_object", trackbar_window) / 100000
+    # force_scale = 1000
+    avoid_divide_by_zero = 0.5
+    avoid_walls_force[close_to_right_wall, 0] = -force_scale / (WIDTH - fish["position"][close_to_right_wall, 0] + avoid_divide_by_zero)
+    avoid_walls_force[close_to_left_wall, 0] = force_scale / (fish["position"][close_to_left_wall, 0] + avoid_divide_by_zero)
+    avoid_walls_force[close_to_bottom_wall, 1] = -force_scale / (HEIGHT - fish["position"][close_to_bottom_wall, 1] + avoid_divide_by_zero)
+    avoid_walls_force[close_to_top, 1] = force_scale / (fish["position"][close_to_top, 1] + avoid_divide_by_zero)
+    return avoid_walls_force
+
 def boid_behaviour(fish, sep_matrix, square_distances, far_fish, seperation_mag = 1, alignment_mag = 1, cohesion_mag = 1):
+    cohesion_mag = cv.getTrackbarPos("cohesion", trackbar_window) / 100
+    alignment_mag = cv.getTrackbarPos("alignment", trackbar_window) / 100
+    seperation_mag = cv.getTrackbarPos("seperation", trackbar_window) / 100
     for i in range(n_fish):
         start_pos = fish["position"][i,:] + [FISH_WIDTH/2, FISH_HIGHT/2]
         avoidance_force = np.zeros(2)
@@ -92,6 +116,8 @@ def boid_behaviour(fish, sep_matrix, square_distances, far_fish, seperation_mag 
             local_flock_avg_pos /= n_close
             cohesion_force = 0.000002 * cohesion_mag * (local_flock_avg_pos - fish["position"][i,:])
             fish["acceleration"][i] += cohesion_force
+    fish["acceleration"] += avoid_walls(fish)
+
 
 def move_fish(fish, dt):
     max_speed = 0.06
@@ -106,6 +132,15 @@ def move_fish(fish, dt):
 
 # Run until the user asks to quit
 running = True
+
+def on_trackbar(val):
+    pass
+
+cv.namedWindow(trackbar_window)
+cv.createTrackbar("cohesion", trackbar_window, 100, 1000, on_trackbar)
+cv.createTrackbar("alignment", trackbar_window, 100, 1000, on_trackbar)
+cv.createTrackbar("seperation", trackbar_window, 100, 1000, on_trackbar)
+cv.createTrackbar("avoid_object", trackbar_window, 200, 1000, on_trackbar)
 while running:
     screen.fill((255, 255, 255))
     # Did the user click the window close button?
@@ -117,13 +152,14 @@ while running:
     sep_matrix, square_distances, far_fish = get_fish_seperations(fish)
     boid_behaviour(fish, sep_matrix, square_distances, far_fish,
                 seperation_mag = 0.5, alignment_mag = 3, cohesion_mag = 2)
-    dt = clock.tick(60)
+    dt = clock.tick(6000)
     fish = move_fish(fish, dt)
     # print(fish)
     pygame.display.update()
 
     # Flip the display
     pygame.display.flip()
+    # running = False
 
 # Done! Time to quit.
 pygame.quit()
