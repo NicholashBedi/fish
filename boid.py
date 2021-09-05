@@ -3,12 +3,13 @@ import numpy as np
 import math
 import sys
 import supporting_math as sm
-num_fish = 200
+num_fish = 60
 WIDTH = 600
 HEIGHT = 600
 DEBUG = False
 time_delay = 1
 WRITE_VIDEO = True
+video_name = "test2.avi"
 # obstacle_img_name = "test_5050.png"
 # obstacle_img_name = "test_left.png"
 # obstacle_img_name = "test_right.png"
@@ -30,6 +31,8 @@ class Boids:
         else:
             self.position = np.random.uniform(295, 305, (n_fish, 2))
             self.velocity = np.random.uniform(-0.05, 0.05, (n_fish,2))
+        if WRITE_VIDEO:
+            self.set_up_video_recorder()
         self.acceleration = np.zeros((n_fish,2))
         self.base_image = np.full([WIDTH,HEIGHT, 4], 255, dtype=np.uint8)
         self.time_step = 100
@@ -40,9 +43,14 @@ class Boids:
         self.n_lines = 10
         self.ang_inc = (360-blind_spot_angle)/self.n_lines
         self.vision_radius = 50
+        self.fourcc = cv.VideoWriter_fourcc('m', 'p', '4', 'v')
         self.make_trackbars()
         self.load_obstacle()
 
+    def set_up_video_recorder(self):
+        fourcc = cv.VideoWriter_fourcc(*'XVID')
+        fps = 12
+        self.writer = cv.VideoWriter(video_name, fourcc, 12, (WIDTH, HEIGHT))
     def load_obstacle(self):
         self.obstacle_img = cv.imread(obstacle_img_name, cv.IMREAD_UNCHANGED)
         self.obstacle = self.obstacle_img[:, :, 0] == 0
@@ -116,6 +124,8 @@ class Boids:
             self.debug_start = []
             self.debug_end = []
         cv.imshow("Display window", self.base_image)
+        if WRITE_VIDEO:
+            self.writer.write(self.base_image[:,:, :3])
         self.base_image[:,:,3] = 0
         self.base_image[self.obstacle] = [0,0,0,255]
 
@@ -316,3 +326,4 @@ while(True):
     b.display_boid()
     if cv.waitKey(time_delay) & 0xFF == ord('q'):
         break
+b.writer.release()
