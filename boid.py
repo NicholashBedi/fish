@@ -3,19 +3,32 @@ import numpy as np
 import math
 import sys
 import supporting_math as sm
-num_fish = 60
+num_fish = 10
 WIDTH = 600
 HEIGHT = 600
-DEBUG = False
+DEBUG = True
 time_delay = 1
+# obstacle_img_name = "test_5050.png"
+# obstacle_img_name = "test_left.png"
+# obstacle_img_name = "test_right.png"
+obstacle_img_name = "obstacle_1.png"
+# TEST = True
+TEST = False
 class Boids:
-    def __init__(self, fish_image, n_fish):
+    def __init__(self, fish_image, n_fish, test = False):
         self.fish_img = fish_image
         self.img_scale = 0.25
         self.fish_img_height, self.fish_img_width = self.fish_img.shape[:2]
         self.n_fish = n_fish
-        self.position = np.random.uniform(295, 305, (n_fish, 2))
-        self.velocity = np.random.uniform(-0.05, 0.05, (n_fish,2))
+        if TEST:
+            self.position = np.zeros((n_fish,2))
+            self.position[:, 0] = np.full((n_fish), 150)
+            self.position[:, 1] = np.full((n_fish), 300)
+            self.velocity = np.zeros((n_fish,2))
+            self.velocity[:, 0] = np.full((n_fish), 0.05)
+        else:
+            self.position = np.random.uniform(295, 305, (n_fish, 2))
+            self.velocity = np.random.uniform(-0.05, 0.05, (n_fish,2))
         self.acceleration = np.zeros((n_fish,2))
         self.base_image = np.full([WIDTH,HEIGHT, 4], 255, dtype=np.uint8)
         self.time_step = 100
@@ -23,24 +36,24 @@ class Boids:
         self.debug_end = []
         self.trackbar_window = "Trackbar"
         blind_spot_angle = 45
-        self.n_lines = 21
+        self.n_lines = 10
         self.ang_inc = (360-blind_spot_angle)/self.n_lines
         self.vision_radius = 50
         self.make_trackbars()
         self.load_obstacle()
 
     def load_obstacle(self):
-        self.obstacle_img = cv.imread("obstacle_2.png", cv.IMREAD_UNCHANGED)
+        self.obstacle_img = cv.imread(obstacle_img_name, cv.IMREAD_UNCHANGED)
         self.obstacle = self.obstacle_img[:, :, 0] == 0
 
     def make_trackbars(self):
         cv.namedWindow(self.trackbar_window)
-        cv.createTrackbar("cohesion", self.trackbar_window, 200, 1000, self.on_trackbar)
-        cv.createTrackbar("alignment", self.trackbar_window, 200, 1000, self.on_trackbar)
-        cv.createTrackbar("seperation", self.trackbar_window, 75, 1000, self.on_trackbar)
+        cv.createTrackbar("cohesion", self.trackbar_window, 100, 1000, self.on_trackbar)
+        cv.createTrackbar("alignment", self.trackbar_window, 100, 1000, self.on_trackbar)
+        cv.createTrackbar("seperation", self.trackbar_window, 50, 1000, self.on_trackbar)
         # cv.createTrackbar("avoid_wall", self.trackbar_window, 100, 1000, self.on_trackbar)
-        cv.createTrackbar("a_obj", self.trackbar_window, 50, 1000, self.on_trackbar)
-        cv.createTrackbar("v_radius", self.trackbar_window, 75, 150, self.on_trackbar)
+        cv.createTrackbar("a_obj", self.trackbar_window, 100, 1000, self.on_trackbar)
+        cv.createTrackbar("v_radius", self.trackbar_window, 100, 150, self.on_trackbar)
 
     def on_trackbar(self, x):
         pass
@@ -181,37 +194,74 @@ class Boids:
             colour = (0,0,255,255)
         cv.line(self.base_image,start_pos,(end_x,end_y),colour,1)
 
+    def choose_direction(self, start_pos, angle_cw, angle_ccw):
+        max_scale = 2
+        min_scale = 1
+        scale = 2
+        collision_ccw = self.check_colision(start_pos, angle_ccw, scale)
+        collision_cw = self.check_colision(start_pos, angle_cw, scale)
+        if (not collision_ccw) and collision_cw:
+            return angle_ccw
+        elif (not collision_cw) and collision_ccw:
+            return angle_cw
+        # bias to ccw
+        elif not collision_ccw and not collision_cw:
+            return angle_ccw
+        # Will only go forward if both collisions hit
+        scale = 1.5
+        iter = 0
+        while iter < 15:
+            collision_ccw = self.check_colision(start_pos, angle_ccw, scale)
+            collision_cw = self.check_colision(start_pos, angle_cw, scale)
+            if (not collision_ccw) and collision_cw:
+                return angle_ccw
+            elif (not collision_cw) and collision_ccw:
+                return angle_cw
+            elif not collision_ccw and not collision_cw:
+                min_scale = scale
+            else:
+                max_scale = scale
+            scale = (max_scale - min_scale)/2 + min_scale
+            iter += 1
+        return angle_ccw
+
     def find_nearest_clear_angle(self, start_pos, starting_angle):
         for i in range(1, self.n_lines):
-            # check ccw
-            if i%2 == 1:
-                angle = sm.wrap_orientation(starting_angle + (i+1)*self.ang_inc/2)
-            else:
-                angle = sm.wrap_orientation(starting_angle - i*self.ang_inc/2)
-            collision = self.check_colision(start_pos, angle, scale = 1)
+            angle_ccw = sm.wrap_orientation(starting_angle + i*self.ang_inc/2)
+            angle_cw =  sm.wrap_orientation(starting_angle - i*self.ang_inc/2)
+            collision_ccw = self.check_colision(start_pos, angle_ccw, scale = 1)
+            collision_cw = self.check_colision(start_pos, angle_cw, scale = 1)
             if DEBUG:
-                self.display_vision_line(start_pos, angle, collision)
-            if not collision:
-                return angle
-        return_angle = math.atan2(-(start_pos[1] - HEIGHT/2), start_pos[0] - WIDTH/2) * 180/ math.pi
+                self.display_vision_line(start_pos, angle_ccw, collision_ccw)
+                self.display_vision_line(start_pos, angle_cw, collision_cw)
+            if (not collision_ccw) and collision_cw:
+                return angle_ccw
+            elif (not collision_cw) and collision_ccw:
+                return angle_cw
+            elif not collision_cw and not collision_ccw:
+                return self.choose_direction(start_pos, angle_cw, angle_ccw)
+        return_angle = math.atan2((WIDTH/2 - start_pos[0]), (HEIGHT/2 - start_pos[1])) * 180/ math.pi
+        acceleration = []
         return return_angle
 
     def vision_cone(self):
-        force_scale = cv.getTrackbarPos("a_obj", self.trackbar_window) / 100000
+        force_scale = cv.getTrackbarPos("a_obj", self.trackbar_window) / 10000
         self.vision_radius = cv.getTrackbarPos("v_radius", self.trackbar_window)
         for i in range(self.n_fish):
             start_pos = tuple(self.position[i].astype(int))
             # Already calculated in display_boid
             angle = math.atan2(-self.velocity[i][1], self.velocity[i][0]) * 180/ math.pi
             starting_angle = sm.wrap_orientation(angle)
+
             if DEBUG:
                 end_x, end_y = self.get_end_points(start_pos, angle)
                 cv.line(self.base_image,start_pos,(end_x,end_y),(255,0,255,255),1)
             if self.check_colision(start_pos, starting_angle):
                 angle_to_move = self.find_nearest_clear_angle(start_pos, starting_angle)
+                direction = np.array((math.cos(math.radians(angle_to_move)),
+                    -1*math.sin(math.radians(angle_to_move))))
                 self.acceleration[i] += force_scale \
-                            *np.array((math.sin(math.radians(angle_to_move)),
-                                math.cos(math.radians(angle_to_move))))
+                            *direction
 
     def check_boundaries(self):
         too_right = self.position[:, 0] > WIDTH - self.fish_img_width
@@ -232,7 +282,6 @@ class Boids:
         self.velocity[too_high, 1] = abs(self.velocity[too_high, 1])
 
     def avoid_walls(self):
-
         close_to_right_wall = self.position[:, 0] > WIDTH - too_close
         close_to_left_wall = self.position[:, 0] < too_close
         close_to_bottom_wall= self.position[:, 1] > HEIGHT - too_close
