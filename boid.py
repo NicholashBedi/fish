@@ -3,11 +3,12 @@ import numpy as np
 import math
 import sys
 import supporting_math as sm
-num_fish = 10
+num_fish = 200
 WIDTH = 600
 HEIGHT = 600
-DEBUG = True
+DEBUG = False
 time_delay = 1
+WRITE_VIDEO = True
 # obstacle_img_name = "test_5050.png"
 # obstacle_img_name = "test_left.png"
 # obstacle_img_name = "test_right.png"
@@ -244,6 +245,15 @@ class Boids:
         acceleration = []
         return return_angle
 
+    def how_much_to_increase_angle(self, starting_angle, angle_to_move):
+        diff = sm.wrap_orientation(angle_to_move - starting_angle)
+        change_angle_by = 20
+        if diff == 0 or diff == 180:
+            return angle_to_move
+        if diff > 180:
+            return(sm.wrap_orientation(angle_to_move - change_angle_by))
+        else:
+            return(sm.wrap_orientation(angle_to_move + change_angle_by))
     def vision_cone(self):
         force_scale = cv.getTrackbarPos("a_obj", self.trackbar_window) / 10000
         self.vision_radius = cv.getTrackbarPos("v_radius", self.trackbar_window)
@@ -257,7 +267,8 @@ class Boids:
                 end_x, end_y = self.get_end_points(start_pos, angle)
                 cv.line(self.base_image,start_pos,(end_x,end_y),(255,0,255,255),1)
             if self.check_colision(start_pos, starting_angle):
-                angle_to_move = self.find_nearest_clear_angle(start_pos, starting_angle)
+                clear_angle = self.find_nearest_clear_angle(start_pos, starting_angle)
+                angle_to_move = self.how_much_to_increase_angle(starting_angle, clear_angle)
                 direction = np.array((math.cos(math.radians(angle_to_move)),
                     -1*math.sin(math.radians(angle_to_move))))
                 self.acceleration[i] += force_scale \
