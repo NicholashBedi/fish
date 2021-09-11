@@ -1,5 +1,22 @@
 import cv2 as cv
 import numpy as np
+import math
+
+
+def insert_image(x, y, insert_image, base_image):
+    critical_part = insert_image[:,:, 3] != 0
+    y_start = y - math.floor(insert_image.shape[0]/2)
+    y_end = y + math.ceil( insert_image.shape[0]/2)
+    x_start = x - math.floor(insert_image.shape[1]/2)
+    x_end = x + math.ceil( insert_image.shape[1]/2)
+    if (y_start > 0 and y_end < base_image.shape[0] and x_start > 0 and x_end < base_image.shape[1]):
+        base_image[y - math.floor(insert_image.shape[0]/2):
+                   y + math.ceil( insert_image.shape[0]/2),
+                   x - math.floor(insert_image.shape[1]/2):
+                   x + math.ceil( insert_image.shape[1]/2)][critical_part] = \
+                            insert_image[critical_part]
+        base_image[base_image[:,:,3] == 0] = [255,255,255,255]
+    return base_image
 
 # Roate image about the center
 # angle is in degrees

@@ -77,40 +77,13 @@ class Boids:
                 self.velocity[i] /= np.linalg.norm(self.velocity[i])
                 self.velocity[i] *= max_speed
 
-    def rotate_image(self, angle, scale = 0.25):
-        image_center = tuple(np.array((self.fish_img_width, self.fish_img_height)) / 2)
-        rot_mat = cv.getRotationMatrix2D(image_center, angle, scale)
-        r = np.deg2rad(angle)
-        new_width = scale*(abs(np.sin(r)*self.fish_img_height)
-                + abs(np.cos(r)*self.fish_img_width))
-        new_height = scale*(abs(np.sin(r)*self.fish_img_width)
-                + abs(np.cos(r)*self.fish_img_height))
-        # Translate center of image
-        translate_x = (new_width-self.fish_img_width)/2
-        translate_y = (new_height-self.fish_img_height)/2
-        rot_mat[0,2] += translate_x
-        rot_mat[1,2] += translate_y
-        result = cv.warpAffine(self.fish_img, rot_mat, dsize=(int(new_width), int(new_height)))
-        return result
-
     def display_boid(self):
         for i in range(self.n_fish):
             angle = math.atan2(-self.velocity[i][1], self.velocity[i][0]) * 180/ math.pi
             rot_fish = sm.rotate_image(self.fish_img, angle, scale = 0.25)
             y = math.floor(self.position[i][1] + 0.5)
             x = math.floor(self.position[i][0] + 0.5)
-            # cv.circle(self.base_image,(x,y), 10, (0,0,255,255), 10)
-            fish_part = rot_fish[:,:, 3] != 0
-            y_start = y - math.floor(rot_fish.shape[0]/2)
-            y_end = y + math.ceil( rot_fish.shape[0]/2)
-            x_start = x - math.floor(rot_fish.shape[1]/2)
-            x_end = x + math.ceil( rot_fish.shape[1]/2)
-            if (y_start > 0 and y_end < HEIGHT and x_start > 0 and x_end < WIDTH):
-                self.base_image[y - math.floor(rot_fish.shape[0]/2):
-                           y + math.ceil( rot_fish.shape[0]/2),
-                           x - math.floor(rot_fish.shape[1]/2):
-                           x + math.ceil( rot_fish.shape[1]/2)][fish_part] = rot_fish[fish_part]
-                self.base_image[self.base_image[:,:,3] == 0] = [255,255,255,255]
+            self.base_image = sm.insert_image(x, y, rot_fish, self.base_image)
         if DEBUG:
             for i in range(self.n_fish):
                 for j in range(i+1, self.n_fish):

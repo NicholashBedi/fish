@@ -26,20 +26,6 @@ class Plants:
     def on_trackbar(self, val):
         pass
 
-    def insert_image(self, x, y, insert_image):
-        critical_part = insert_image[:,:, 3] != 0
-        y_start = y - math.floor(insert_image.shape[0]/2)
-        y_end = y + math.ceil( insert_image.shape[0]/2)
-        x_start = x - math.floor(insert_image.shape[1]/2)
-        x_end = x + math.ceil( insert_image.shape[1]/2)
-        if (y_start > 0 and y_end < self.base_image.shape[0] and x_start > 0 and x_end < self.base_image.shape[1]):
-            self.base_image[y - math.floor(insert_image.shape[0]/2):
-                       y + math.ceil( insert_image.shape[0]/2),
-                       x - math.floor(insert_image.shape[1]/2):
-                       x + math.ceil( insert_image.shape[1]/2)][critical_part] = \
-                                insert_image[critical_part]
-            # self.base_image[self.base_image[:,:,3] == 0] = [255,255,255,255]
-
     def display_leaf(self):
         self.base_image = np.full([WIDTH,HEIGHT, 4], 255, dtype=np.uint8)
         x = cv.getTrackbarPos("x", self.trackbar_window)
@@ -48,7 +34,8 @@ class Plants:
         rotated_image = sm.rotate_image(self.plant_img, angle, scale = 0.5)
         x_adjust, y_adjust = sm.adjust_image_loc_for_bottom_center_roation(
                                 x, y, self.plant_img.shape[0], angle, scale = 0.5)
-        self.insert_image(x_adjust, y_adjust, rotated_image)
+        self.base_image = sm.insert_image(x_adjust, y_adjust,
+                                        rotated_image, self.base_image)
         cv.imshow("Display window", self.base_image)
 
 p = Plants()
