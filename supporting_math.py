@@ -1,3 +1,29 @@
+import cv2 as cv
+import numpy as np
+
+# Roate image about the center
+# angle is in degrees
+def rotate_image(image, angle, scale = 1):
+    width = image.shape[1]
+    height = image.shape[0]
+    image_center = tuple(np.array((width, height)) / 2)
+    rot_mat = cv.getRotationMatrix2D(image_center, angle, scale)
+    r = np.deg2rad(angle)
+    new_width = scale*(abs(np.sin(r)*height) + abs(np.cos(r)*width))
+    new_height = scale*(abs(np.sin(r)*width) + abs(np.cos(r)*height))
+    # Translate center of image
+    translate_x = (new_width - width)/2
+    translate_y = (new_height - height)/2
+    rot_mat[0,2] += translate_x
+    rot_mat[1,2] += translate_y
+    return(cv.warpAffine(image, rot_mat, dsize=(int(new_width), int(new_height))))
+
+def adjust_image_loc_for_bottom_center_roation(x, y, height, angle, scale = 1):
+    r = np.deg2rad(angle)
+    x -= round(scale*height*np.sin(r)/2)
+    y -= round(scale*height*np.cos(r)/2)
+    return(x, y)
+
 def wrap_orientation(angle):
       if angle < 0:
           angle += 360

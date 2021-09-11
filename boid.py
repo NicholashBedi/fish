@@ -96,7 +96,7 @@ class Boids:
     def display_boid(self):
         for i in range(self.n_fish):
             angle = math.atan2(-self.velocity[i][1], self.velocity[i][0]) * 180/ math.pi
-            rot_fish = self.rotate_image(angle)
+            rot_fish = sm.rotate_image(self.fish_img, angle, scale = 0.25)
             y = math.floor(self.position[i][1] + 0.5)
             x = math.floor(self.position[i][0] + 0.5)
             # cv.circle(self.base_image,(x,y), 10, (0,0,255,255), 10)
@@ -318,6 +318,9 @@ class Boids:
         return avoid_walls_force
 
 fish_img = cv.imread("fish.png", cv.IMREAD_UNCHANGED)
+print(fish_img.shape)
+np.set_printoptions(threshold=sys.maxsize)
+print(fish_img)
 b = Boids(fish_img, num_fish)
 while(True):
     b.boid_behaviour()
