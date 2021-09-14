@@ -3,17 +3,9 @@ import numpy as np
 import cv2 as cv
 
 class TestForce(plants.Plants):
-    def set_default_values(self):
+    def set_test_force_values(self):
         self.x = self.width//2
         self.y = self.height//2
-        self.spring_const = 1
-        self.damper_const = 1
-        self.mass_inv = 1.0/1.0
-        self.prev_angle = self.default_angle
-        self.dangle = 0
-        self.angle_velocity = 0
-        self.dt = 0.1
-        self.force_wind = 20
 
     def on_trackbar(self, val):
         pass
@@ -32,23 +24,12 @@ class TestForce(plants.Plants):
         if mass == 0:
             mass = 0.1
         self.mass_inv = 1/mass
-
         self.spring_const = cv.getTrackbarPos("Spring Const", self.trackbar_window)
         self.damper_const = cv.getTrackbarPos("Damper Const", self.trackbar_window)
 
-    def calc_acceleraion(self):
-        return (self.force_wind*np.cos(np.deg2rad(self.dangle + self.default_angle)) \
-                - self.spring_const*self.dangle \
-                - self.damper_const*self.angle_velocity) * self.mass_inv
-
-    def update(self):
-        temp_angle_velocity = self.angle_velocity
-        self.angle_velocity += self.dt * self.calc_acceleraion()
-        self.dangle += self.dt * temp_angle_velocity
-
     def main(self):
         self.make_trackbars()
-        self.set_default_values()
+        self.set_test_force_values()
 
         while True:
             self.get_trackbar_updates()
