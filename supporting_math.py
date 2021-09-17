@@ -87,6 +87,8 @@ def line_points_high(x0, y0, x1, y1):
     return fill
 
 def get_line_points(x0, y0, x1, y1):
+    if(x0 == x1 and y0 == y1):
+        return([[x0,y0]])
     if abs(y1 - y0) < abs(x1 - x0):
         if x0 > x1:
             return line_points_low(x1, y1, x0, y0)
