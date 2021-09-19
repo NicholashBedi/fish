@@ -2,20 +2,40 @@ import cv2 as cv
 import numpy as np
 import math
 
+def insert_part_of_image(insert_image, base_image, y_start, y_end, x_start, x_end):
+    if y_start < 0:
+        insert_image = insert_image[-y_start:,:,:]
+        y_start = 0
+    if y_end > base_image.shape[0]:
+        diff = y_end - base_image.shape[0]
+        insert_image = insert_image[:-diff, :, :]
+        y_end = base_image.shape[0]
+    if x_start < 0:
+        insert_image = insert_image[:, -x_start:, :]
+        x_start = 0
+    if x_end > base_image.shape[1]:
+        diff = x_end - base_image.shape[1]
+        insert_image = insert_image[:, :-diff, :]
+        x_end = base_image.shape[0]
+    critical_part = insert_image[:,:, 3] != 0
+    base_image[y_start:y_end, x_start:x_end][critical_part] = \
+                        insert_image[critical_part]
+    return base_image
+
 
 def insert_image(x, y, insert_image, base_image):
-    critical_part = insert_image[:,:, 3] != 0
     y_start = y - math.floor(insert_image.shape[0]/2)
     y_end = y + math.ceil( insert_image.shape[0]/2)
     x_start = x - math.floor(insert_image.shape[1]/2)
     x_end = x + math.ceil( insert_image.shape[1]/2)
-    if (y_start > 0 and y_end < base_image.shape[0] and x_start > 0 and x_end < base_image.shape[1]):
-        base_image[y - math.floor(insert_image.shape[0]/2):
-                   y + math.ceil( insert_image.shape[0]/2),
-                   x - math.floor(insert_image.shape[1]/2):
-                   x + math.ceil( insert_image.shape[1]/2)][critical_part] = \
+    if (y_start >= 0 and y_end <= base_image.shape[0] and x_start >= 0 and x_end <= base_image.shape[1]):
+        critical_part = insert_image[:,:, 3] != 0
+        base_image[y_start:y_end, x_start:x_end][critical_part] = \
                             insert_image[critical_part]
-        base_image[base_image[:,:,3] == 0] = [255,255,255,255]
+    else:
+        base_image = insert_part_of_image(insert_image, base_image,
+                            y_start, y_end, x_start, x_end)
+    base_image[base_image[:,:,3] == 0] = [255,255,255,255]
     return base_image
 
 # Roate image about the center

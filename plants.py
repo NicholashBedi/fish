@@ -76,6 +76,10 @@ class Plants:
     def display_leaf(self, scale = 0.5):
         self.display_leaf_at_loc(self.x, self.y, self.dangle + self.default_angle, scale)
 
+
+    def display_lead_at_loc_with_ang(self, x, y, angle, scale = 0.5):
+        self.default_angle = np.deg2rad(angle)
+        self.display_leaf_at_loc(x,y,scale)
     # x increases as you go right
     # y increases as you go down
     # (0,0) is at top left

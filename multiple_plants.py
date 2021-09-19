@@ -8,7 +8,7 @@ import wind
 WIDTH = 600
 HEIGHT = 600
 n_plants = 100
-plant_loc = np.random.randint(50, 550, size=(n_plants, 2))
+plant_loc = np.random.randint(0, WIDTH, size=(n_plants, 2))
 plant_def_angle = np.random.uniform(0,0, size=(n_plants))
 all_plants = []
 for i in range(n_plants):
