@@ -8,7 +8,6 @@ class Wind:
         self.debug = True
         self.width = 600
         self.height = 600
-        self.make_trackbars()
 
     def on_trackbar(self, val):
         pass
@@ -37,6 +36,7 @@ class Wind:
 
 if __name__ == "__main__":
     w = Wind()
+    w.make_trackbars()
     test_angled_sin_wave = True
     if test_angled_sin_wave == True:
         t = 0

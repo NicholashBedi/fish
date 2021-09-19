@@ -19,7 +19,7 @@ class TestRotation(plants.Plants):
             x = cv.getTrackbarPos("x", self.trackbar_window)
             y = cv.getTrackbarPos("y", self.trackbar_window)
             angle = cv.getTrackbarPos("angle", self.trackbar_window)
-            self.display_leaf(x,y,angle)
+            self.display_leaf_at_loc(x,y,angle)
             if cv.waitKey(1) & 0xFF == ord('q'):
                   break
 
