@@ -10,10 +10,12 @@ DEBUG = False
 time_delay = 1
 WRITE_VIDEO = True
 video_name = "test2.avi"
+obstacle_loc = "images/obstacles/"
 # obstacle_img_name = "test_5050.png"
 # obstacle_img_name = "test_left.png"
 # obstacle_img_name = "test_right.png"
 obstacle_img_name = "obstacle_1.png"
+obstacle_img_name = obstacle_loc + obstacle_img_name
 # TEST = True
 TEST = False
 class Boids:
@@ -290,10 +292,7 @@ class Boids:
         avoid_walls_force[close_to_top, 1] = force_scale / (self.position[close_to_top, 1] + avoid_divide_by_zero)
         return avoid_walls_force
 
-fish_img = cv.imread("fish.png", cv.IMREAD_UNCHANGED)
-print(fish_img.shape)
-np.set_printoptions(threshold=sys.maxsize)
-print(fish_img)
+fish_img = cv.imread("images/fish.png", cv.IMREAD_UNCHANGED)
 b = Boids(fish_img, num_fish)
 while(True):
     b.boid_behaviour()

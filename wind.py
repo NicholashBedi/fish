@@ -2,6 +2,7 @@ import numpy as np
 import cv2 as cv
 import math
 import supporting_math as sm
+import wind_function as wf
 
 class Wind:
     def __init__(self):
@@ -18,7 +19,7 @@ class Wind:
         cv.createTrackbar("angle", self.trackbar_window, 0, 360, self.on_trackbar)
 
     def wind_force(self, x, t):
-        return 255/2*(np.sin((x+self.width/2)/self.width*2*math.pi + t) + 1)
+        return wf.sin_wave(x, self.width, t)
 
     def get_wind(self, degrees, t):
         larger_length = math.ceil(max(self.height, self.width)*math.sqrt(2))

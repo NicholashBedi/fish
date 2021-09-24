@@ -64,7 +64,7 @@ class Plants:
         self.dangle += self.dt * temp_angle_velocity
 
     def get_plant_img(self):
-        temp = cv.imread("plant_images/leaf.png")
+        temp = cv.imread("images/plant_images/leaf.png")
         self.plant_img = np.zeros((temp.shape[0],temp.shape[1], 4))
         # set RGB of image
         self.plant_img[:, :, :-1] = temp

@@ -16,7 +16,7 @@ screen = pygame.display.set_mode([WIDTH, HEIGHT])
 clock = pygame.time.Clock()
 
 pygame.display.set_caption("Boids")
-icon = pygame.image.load('fish.png')
+icon = pygame.image.load('images/fish.png')
 
 pygame.display.set_icon(icon)
 fish_image = pygame.transform.scale(icon, (FISH_WIDTH,FISH_HIGHT))
