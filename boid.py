@@ -36,6 +36,8 @@ class Boids:
         if WRITE_VIDEO:
             self.set_up_video_recorder()
         self.acceleration = np.zeros((n_fish,2))
+        self.fish_size = np.random.uniform(0.2, 0.3, n_fish)
+        self.fish_colour = np.random.randint(255, size=n_fish)
         self.base_image = np.full([WIDTH,HEIGHT, 4], 255, dtype=np.uint8)
         self.time_step = 100
         self.debug_start = []
@@ -59,12 +61,12 @@ class Boids:
 
     def make_trackbars(self):
         cv.namedWindow(self.trackbar_window)
-        cv.createTrackbar("cohesion", self.trackbar_window, 100, 1000, self.on_trackbar)
-        cv.createTrackbar("alignment", self.trackbar_window, 100, 1000, self.on_trackbar)
-        cv.createTrackbar("seperation", self.trackbar_window, 50, 1000, self.on_trackbar)
+        cv.createTrackbar("cohesion", self.trackbar_window, 140, 300, self.on_trackbar)
+        cv.createTrackbar("alignment", self.trackbar_window, 50, 300, self.on_trackbar)
+        cv.createTrackbar("seperation", self.trackbar_window, 100, 300, self.on_trackbar)
         # cv.createTrackbar("avoid_wall", self.trackbar_window, 100, 1000, self.on_trackbar)
-        cv.createTrackbar("a_obj", self.trackbar_window, 100, 1000, self.on_trackbar)
-        cv.createTrackbar("v_radius", self.trackbar_window, 100, 150, self.on_trackbar)
+        cv.createTrackbar("a_obj", self.trackbar_window, 130, 300, self.on_trackbar)
+        cv.createTrackbar("v_radius", self.trackbar_window, 60, 150, self.on_trackbar)
 
     def on_trackbar(self, x):
         pass
@@ -82,7 +84,8 @@ class Boids:
     def display_boid(self):
         for i in range(self.n_fish):
             angle = math.atan2(-self.velocity[i][1], self.velocity[i][0]) * 180/ math.pi
-            rot_fish = sm.rotate_image(self.fish_img, angle, scale = 0.25)
+            coloured_image = sm.change_colour(self.fish_img, 255, self.fish_colour[i], 0)
+            rot_fish = sm.rotate_image(coloured_image, angle, scale = self.fish_size[i])
             y = math.floor(self.position[i][1] + 0.5)
             x = math.floor(self.position[i][0] + 0.5)
             self.base_image = sm.insert_image(x, y, rot_fish, self.base_image)

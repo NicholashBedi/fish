@@ -158,6 +158,11 @@ def draw_bresenham(x0, y0, x1, y1):
                 print("0 ", end="")
         print("")
 
+def change_colour(image, b, g, r):
+    critical_part = image[:,:, 3] != 0
+    image[critical_part] = [b,g,r,255]
+    return image
+
 if __name__ == "__main__":
     draw_bresenham(4,6,1,0)
     print()
