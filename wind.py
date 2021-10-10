@@ -17,8 +17,10 @@ class Wind:
         self.trackbar_window = "trackbar"
         cv.namedWindow(self.trackbar_window)
         cv.createTrackbar("angle", self.trackbar_window, 0, 360, self.on_trackbar)
-
+        cv.createTrackbar("t-inc", self.trackbar_window, 0, 100, self.on_trackbar)
     def wind_force(self, x, t):
+        # return wf.zero(x, self.width, t)
+        # return wf.square_wave(x, self.width, t)
         return wf.sin_wave(x, self.width, t)
 
     def get_wind(self, degrees, t):

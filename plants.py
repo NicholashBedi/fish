@@ -3,6 +3,7 @@ import cv2 as cv
 import math
 import supporting_math as sm
 import sys
+import wind_function as wf
 
 class Plants:
     def __init__(self, id_i = 0, x_i = 10, y_i = 10, angle_i = 0, debug_i = False):
@@ -28,7 +29,7 @@ class Plants:
         self.force_wind = 0
 
     def set_wind(self, wind):
-        self.force_wind = (wind[self.y, self.x] - 255/2)/10
+        self.force_wind = 10*wf.img_to_force(wind[self.y, self.x])
 
     def display_force_values(self):
         wind = self.force_wind*np.cos(self.dangle + self.default_angle)

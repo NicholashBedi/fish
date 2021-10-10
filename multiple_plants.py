@@ -30,7 +30,7 @@ while(True):
     wind_force = w.get_wind(wind_angle, t)
     # wind_force = np.full([WIDTH, HEIGHT], 255, dtype=np.uint8)
     cv.imshow("Wind", wind_force)
-    t += 0.05
+    t += cv.getTrackbarPos("t-inc", w.trackbar_window)
     for p in all_plants:
         p.set_wind(wind_force)
         p.update()
