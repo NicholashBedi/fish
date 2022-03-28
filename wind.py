@@ -21,7 +21,8 @@ class Wind:
     def wind_force(self, x, t):
         # return wf.zero(x, self.width, t)
         # return wf.square_wave(x, self.width, t)
-        return wf.sin_wave(x, self.width, t)
+        # return wf.sin_wave(x, self.width, t)
+        return wf.perlin(x, self.width, t)
 
     def get_wind(self, degrees, t):
         larger_length = math.ceil(max(self.height, self.width)*math.sqrt(2))
@@ -40,11 +41,9 @@ class Wind:
 if __name__ == "__main__":
     w = Wind()
     w.make_trackbars()
-    test_angled_sin_wave = True
-    if test_angled_sin_wave == True:
-        t = 0
-        while True:
-            w.display_wind(t)
-            t+=0.05
-            if cv.waitKey(1) & 0xFF == ord('q'):
-              break
+    t = 0
+    while True:
+        w.display_wind(t)
+        t += cv.getTrackbarPos("t-inc", w.trackbar_window)
+        if cv.waitKey(1) & 0xFF == ord('q'):
+          break

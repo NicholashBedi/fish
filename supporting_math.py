@@ -163,6 +163,22 @@ def change_colour(image, b, g, r):
     image[critical_part] = [b,g,r,255]
     return image
 
+# Image should be gray scale is
+def get_samples_from_prob_image(img, n):
+    if len(img.shape) >= 3:
+        print("Not gray scale image")
+        return []
+    height, width = img.shape
+    prob_img = 1 - img/255
+    prob_img = prob_img.flatten()
+    prob_img /= np.sum(prob_img)
+
+    coordinates_1d = np.random.choice(height*width, n, replace = False, p = prob_img)
+    coordinates_2d = np.zeros((n,2), dtype=int)
+    for i, loc in enumerate(coordinates_1d):
+        coordinates_2d[i, :] = [loc%width, loc//width]
+    return coordinates_2d
+
 if __name__ == "__main__":
     draw_bresenham(4,6,1,0)
     print()

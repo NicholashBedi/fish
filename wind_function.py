@@ -1,5 +1,7 @@
 import numpy as np
 import math
+import perlin_noise_1d
+
 
 # Wind force is between -1 and 1 where -1 is max force left
 # and 1 is max force right
@@ -21,3 +23,5 @@ def square_wave(x, width, t):
 
 def zero(x, width, t):
     return wind_force_to_img(0)
+def perlin(x, width, t):
+    return(wind_force_to_img(perlin_noise_1d.perlin( (x+t)/400)))
